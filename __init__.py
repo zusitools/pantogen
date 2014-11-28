@@ -41,6 +41,9 @@ from . import intersections
 from . import vector
 from math import pi, sqrt
 
+class IncomputableException(Exception):
+    pass
+
 def len_yz(a, b):
     pos_a = a.matrix_world.to_translation()
     pos_b = b.matrix_world.to_translation()
@@ -52,6 +55,86 @@ def pos_z(a):
 def pos_yz(a):
     pos_a = a.matrix_world.to_translation()
     return vector.vector([pos_a.y, pos_a.z])
+
+class PantographCalculator(object):
+    def __init__(self):
+        self.point_A = vector.vector([-1., -1.])
+        self.point_B = vector.vector([-1., -1.])
+        self.point_C = vector.vector([-1., -1.])
+        self.point_D = vector.vector([-1., -1.])
+        self.point_E = vector.vector([-1., -1.])
+
+        self.len_AD = -1
+        self.len_BC = -1
+        self.len_CD = -1
+        self.len_DE = -1
+
+    def compute_d(self):
+        points_D = intersections.cc_int(self.point_A, self.len_AD, self.point_E, self.len_DE)
+        if len(points_D) == 2:
+            self.point_D = points_D[0] if points_D[0][0] > points_D[1][0] else points_D[1]
+        elif len(points_D) == 1:
+            self.point_D = points_D[0]
+        else:
+            raise IncomputableException("Point D is not computable")
+
+    def compute_c(self):
+        points_C = intersections.cc_int(self.point_D, self.len_CD, self.point_B, self.len_BC)
+        if len(points_C) == 2:
+            self.point_C = points_C[0] if points_C[0][0] > points_C[1][0] else points_C[1]
+        elif len(points_C) == 1:
+            self.point_C = points_C[0]
+        else:
+            raise IncomputableException("Point C is not computable")
+
+    def compute_angle_CDE(self):
+        #point_E_mirrored = vector.vector([2 * self.point_C[0] - self.point_E[0], 2 * self.point_C[1] - self.point_E[1]])
+        #ang = intersections.angle_3p(point_E_mirrored, self.point_D, self.point_C)
+        ang = intersections.angle_3p(self.point_C, self.point_D, self.point_E)
+        if ang is None:
+            raise IncomputableException("Angle is is not computable")
+        else:
+            return ang
+
+    def angle_at_A(self):
+        return -intersections.angle_3p(self.point_D, self.point_A, vector.vector([self.point_A[0] + 1000, self.point_A[1]]))
+
+    def angle_at_B(self):
+        return -intersections.angle_3p(self.point_C, self.point_B, vector.vector([self.point_B[0] + 1000, self.point_B[1]]))
+
+    def angle_at_D(self):
+        return -intersections.angle_3p(self.point_E, self.point_D, self.point_A)
+
+    def compute_xE(self, yE):
+        print("computing xE, A=%s, B=%s, AD=%f, BC=%f, CD=%f, DE=%f" % (self.point_A, self.point_B, self.len_AD, self.len_BC, self.len_CD, self.len_DE))
+
+        self.point_E[1] = yE
+        best_x = 0
+        best_diff = 9999
+
+        # There might be better ways to solve this equation, but this will do for the moment
+        for xE in range(-1000, 1000):
+            self.point_E[0] = xE / 1000.0
+            try:
+                self.compute_d()
+                self.compute_c()
+                a = self.compute_angle_CDE()
+                #print("x=%f, y=%f, angle=%f deg" % (self.point_E[0], self.point_E[1], a / pi * 180.0))
+
+                if (abs(a - self.angle_CDE) < best_diff):
+                    best_diff = abs(a - self.angle_CDE)
+                    best_x = self.point_E[0]
+
+            except IncomputableException:
+                #print("incomputable for x=%f" % self.point_E[0])
+                pass
+
+        if best_diff == 9999:
+            raise IncomputableException("all calculations failed")
+
+        self.point_E[0] = best_x
+        self.compute_d()
+        self.compute_c()
 
 class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
     bl_idname = "pantogen.gen_keyframe"
@@ -65,6 +148,22 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
     obj_An_Kuppelstange = StringProperty(name='Anbaupunkt Kuppelstange an Oberarm', default="Anbaupunkt Kuppelstange")
     obj_An_Palette = StringProperty(name='Anbaupunkt Palette an Oberarm', default="Anbaupunkt Palette")
     obj_Schleifstueck = StringProperty(name='Oberkante Schleifstueck', default="Schleifstück")
+
+    def set_keyframe(self, ob, data_path, array_index, frame, value):
+        if ob.animation_data is None:
+            ob.animation_data_create()
+        if ob.animation_data.action is None:
+            ob.animation_data.action = bpy.data.actions.new(
+                ob.name + "Action")
+
+        # Make sure the FCurve is present on the Action.
+        fcurves = [curve for curve in ob.animation_data.action.fcurves if curve.data_path == data_path and curve.array_index == array_index]
+        if len(fcurves) == 0:
+            fcurve = ob.animation_data.action.fcurves.new(data_path, array_index)
+        else:
+            fcurve = fcurves[0]
+
+        fcurve.keyframe_points.insert(frame, value).interpolation = 'LINEAR'
 
     def draw(self, context):
         layout = self.layout
@@ -87,11 +186,11 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
             if o not in context.scene.objects:
                 return {'FINISHED'}
 
-        obj_Unterarm = context.scene.objects[self.obj_Unterarm]
-        obj_Kuppelstange = context.scene.objects[self.obj_Kuppelstange]
-        obj_Oberarm = context.scene.objects[self.obj_Oberarm]
-        obj_An_Kuppelstange = context.scene.objects[self.obj_An_Kuppelstange]
-        obj_An_Palette = context.scene.objects[self.obj_An_Palette]
+        obj_Unterarm = context.scene.objects[self.obj_Unterarm]               # A
+        obj_Kuppelstange = context.scene.objects[self.obj_Kuppelstange]       # B
+        obj_Oberarm = context.scene.objects[self.obj_Oberarm]                 # D
+        obj_An_Kuppelstange = context.scene.objects[self.obj_An_Kuppelstange] # C
+        obj_An_Palette = context.scene.objects[self.obj_An_Palette]           # E
         obj_Schleifstueck = context.scene.objects[self.obj_Schleifstueck]
 
         if (obj_An_Kuppelstange.parent != obj_Oberarm or
@@ -99,19 +198,48 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
                 obj_Oberarm.parent != obj_Unterarm):
             return {'FINISHED'}
 
-        point_A = pos_yz(obj_Unterarm)
-        point_B = pos_yz(obj_Kuppelstange)
+        c = PantographCalculator()
+        c.point_A = pos_yz(obj_Unterarm)
+        c.point_B = pos_yz(obj_Kuppelstange)
 
-        len_AD = len_yz(obj_Unterarm, obj_Oberarm)
-        len_BC = len_yz(obj_Kuppelstange, obj_An_Kuppelstange)
-        len_CD = len_yz(obj_An_Kuppelstange, obj_Oberarm)
-        len_DE = len_yz(obj_Oberarm, obj_An_Palette)
+        c.len_AD = len_yz(obj_Unterarm, obj_Oberarm)
+        c.len_BC = len_yz(obj_Kuppelstange, obj_An_Kuppelstange)
+        c.len_CD = len_yz(obj_An_Kuppelstange, obj_Oberarm)
+        c.len_DE = len_yz(obj_Oberarm, obj_An_Palette)
 
-        angle_CDE = intersections.angle_3p(pos_yz(obj_An_Kuppelstange), pos_yz(obj_Oberarm), pos_yz(obj_An_Palette))
+        c.angle_CDE = intersections.angle_3p(pos_yz(obj_An_Kuppelstange), pos_yz(obj_Oberarm), pos_yz(obj_An_Palette))
+        print("angle_CDE = %f deg" % (c.angle_CDE / pi * 180.0))
 
         off_Schleifstueck = pos_z(obj_Schleifstueck) - pos_z(obj_An_Palette)
 
-        print("A=%s, B=%s, AD=%f, BC=%f, CD=%f, DE=%f, CDE=%f, offset=%f" % (str(point_A), str(point_B), len_AD, len_BC, len_CD, len_DE, angle_CDE, off_Schleifstueck))
+        startframe = context.scene.frame_start
+        endframe = context.scene.frame_end
+        curframe = context.scene.frame_current
+        height = 2.5 * float(curframe - startframe) / float(endframe - startframe)
+
+        c.compute_xE(height - off_Schleifstueck)
+       
+        if False:
+            import mathutils
+            empty = bpy.data.objects.new("A", None)
+            empty.location = mathutils.Vector([0, c.point_A[0], c.point_A[1]])
+            context.scene.objects.link(empty)
+            empty = bpy.data.objects.new("B", None)
+            empty.location = mathutils.Vector([0, c.point_B[0], c.point_B[1]])
+            context.scene.objects.link(empty)
+            empty = bpy.data.objects.new("C", None)
+            empty.location = mathutils.Vector([0, c.point_C[0], c.point_C[1]])
+            context.scene.objects.link(empty)
+            empty = bpy.data.objects.new("D", None)
+            empty.location = mathutils.Vector([0, c.point_D[0], c.point_D[1]])
+            context.scene.objects.link(empty)
+            empty = bpy.data.objects.new("E", None)
+            empty.location = mathutils.Vector([0, c.point_E[0], c.point_E[1]])
+            context.scene.objects.link(empty)
+
+        self.set_keyframe(obj_Unterarm, "rotation_euler", 0, curframe, c.angle_at_A())
+        self.set_keyframe(obj_Kuppelstange, "rotation_euler", 0, curframe, c.angle_at_B())
+        self.set_keyframe(obj_Oberarm, "rotation_euler", 0, curframe, c.angle_at_D() + pi)
 
         return {'FINISHED'}
 
