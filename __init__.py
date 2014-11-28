@@ -241,6 +241,8 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
         self.set_keyframe(obj_Kuppelstange, "rotation_euler", 0, curframe, c.angle_at_B())
         self.set_keyframe(obj_Oberarm, "rotation_euler", 0, curframe, c.angle_at_D() + pi)
 
+        context.scene.frame_set(curframe)
+
         return {'FINISHED'}
 
     def invoke(self, context, event):
