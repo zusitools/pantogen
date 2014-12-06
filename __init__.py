@@ -144,20 +144,19 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
     obj_An_Palette = StringProperty(name='Anbaupunkt Palette an Oberarm', default="Anbaupunkt Palette")
     obj_An_Schleifstueck = StringProperty(name='Anbaupunkt Oberkante Schleifstueck', default="Anbaupunkt Schleifstück")
 
-    def set_keyframe(self, ob, data_path, array_index, frame, value):
+    def get_fcurve(self, ob, data_path, array_index):
         if ob.animation_data is None:
             ob.animation_data_create()
         if ob.animation_data.action is None:
-            ob.animation_data.action = bpy.data.actions.new(
-                ob.name + "Action")
+            ob.animation_data.action = bpy.data.actions.new(ob.name + "Action")
 
-        # Make sure the FCurve is present on the Action.
-        fcurves = [curve for curve in ob.animation_data.action.fcurves if curve.data_path == data_path and curve.array_index == array_index]
-        if len(fcurves) == 0:
-            fcurve = ob.animation_data.action.fcurves.new(data_path, array_index)
-        else:
-            fcurve = fcurves[0]
+        for curve in ob.animation_data.action.fcurves:
+            if curve.data_path == data_path and curve.array_index == array_index:
+                return curve
+        return ob.animation_data.action.fcurves.new(data_path, array_index)
 
+    def set_keyframe(self, ob, data_path, array_index, frame, value):
+        fcurve = self.get_fcurve(ob, data_path, array_index)
         fcurve.keyframe_points.insert(frame, value).interpolation = 'LINEAR'
 
     def draw(self, context):
