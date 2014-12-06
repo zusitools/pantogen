@@ -147,7 +147,7 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
     obj_Oberarm = StringProperty(name='Oberarm (Ursprung = Rotationszentrum)', default="Oberarm")
     obj_An_Kuppelstange = StringProperty(name='Anbaupunkt Kuppelstange an Oberarm', default="Anbaupunkt Kuppelstange")
     obj_An_Palette = StringProperty(name='Anbaupunkt Palette an Oberarm', default="Anbaupunkt Palette")
-    obj_Schleifstueck = StringProperty(name='Oberkante Schleifstueck', default="Schleifstück")
+    obj_An_Schleifstueck = StringProperty(name='Anbaupunkt Oberkante Schleifstueck', default="Anbaupunkt Schleifstück")
 
     def set_keyframe(self, ob, data_path, array_index, frame, value):
         if ob.animation_data is None:
@@ -178,11 +178,11 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
         layout.row().prop_search(self, 'obj_An_Kuppelstange', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
         layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_An_Palette[1]["name"])
         layout.row().prop_search(self, 'obj_An_Palette', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
-        layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_Schleifstueck[1]["name"])
-        layout.row().prop_search(self, 'obj_Schleifstueck', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
+        layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_An_Schleifstueck[1]["name"])
+        layout.row().prop_search(self, 'obj_An_Schleifstueck', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
 
     def execute(self, context):
-        for o in (self.obj_Oberarm, self.obj_Unterarm, self.obj_Kuppelstange, self.obj_Schleifstueck, self.obj_An_Palette, self.obj_An_Kuppelstange):
+        for o in (self.obj_Oberarm, self.obj_Unterarm, self.obj_Kuppelstange, self.obj_An_Schleifstueck, self.obj_An_Palette, self.obj_An_Kuppelstange):
             if o not in context.scene.objects:
                 return {'FINISHED'}
 
@@ -191,7 +191,7 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
         obj_Oberarm = context.scene.objects[self.obj_Oberarm]                 # D
         obj_An_Kuppelstange = context.scene.objects[self.obj_An_Kuppelstange] # C
         obj_An_Palette = context.scene.objects[self.obj_An_Palette]           # E
-        obj_Schleifstueck = context.scene.objects[self.obj_Schleifstueck]
+        obj_An_Schleifstueck = context.scene.objects[self.obj_An_Schleifstueck]
 
         if (obj_An_Kuppelstange.parent != obj_Oberarm or
                 obj_An_Palette.parent != obj_Oberarm or
@@ -210,7 +210,7 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
         c.angle_CDE = intersections.angle_3p(100 * pos_yz(obj_An_Kuppelstange), 100 * pos_yz(obj_Oberarm), 100 * pos_yz(obj_An_Palette))
         print("angle_CDE = %f deg" % (c.angle_CDE / pi * 180.0))
 
-        off_Schleifstueck = 100 * (pos_z(obj_Schleifstueck) - pos_z(obj_An_Palette))
+        off_Schleifstueck = 100 * (pos_z(obj_An_Schleifstueck) - pos_z(obj_An_Palette))
 
         startframe = context.scene.frame_start
         endframe = context.scene.frame_end
