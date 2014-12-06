@@ -114,7 +114,7 @@ class PantographCalculator(object):
 
         # There might be better ways to solve this equation, but this will do for the moment
         for xE in range(-1000, 1000):
-            self.point_E[0] = xE / 1000.0
+            self.point_E[0] = xE / 10.0
             try:
                 self.compute_d()
                 self.compute_c()
@@ -199,23 +199,23 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
             return {'FINISHED'}
 
         c = PantographCalculator()
-        c.point_A = pos_yz(obj_Unterarm)
-        c.point_B = pos_yz(obj_Kuppelstange)
+        c.point_A = 100 * pos_yz(obj_Unterarm)
+        c.point_B = 100 * pos_yz(obj_Kuppelstange)
 
-        c.len_AD = len_yz(obj_Unterarm, obj_Oberarm)
-        c.len_BC = len_yz(obj_Kuppelstange, obj_An_Kuppelstange)
-        c.len_CD = len_yz(obj_An_Kuppelstange, obj_Oberarm)
-        c.len_DE = len_yz(obj_Oberarm, obj_An_Palette)
+        c.len_AD = 100 * len_yz(obj_Unterarm, obj_Oberarm)
+        c.len_BC = 100 * len_yz(obj_Kuppelstange, obj_An_Kuppelstange)
+        c.len_CD = 100 * len_yz(obj_An_Kuppelstange, obj_Oberarm)
+        c.len_DE = 100 * len_yz(obj_Oberarm, obj_An_Palette)
 
-        c.angle_CDE = intersections.angle_3p(pos_yz(obj_An_Kuppelstange), pos_yz(obj_Oberarm), pos_yz(obj_An_Palette))
+        c.angle_CDE = intersections.angle_3p(100 * pos_yz(obj_An_Kuppelstange), 100 * pos_yz(obj_Oberarm), 100 * pos_yz(obj_An_Palette))
         print("angle_CDE = %f deg" % (c.angle_CDE / pi * 180.0))
 
-        off_Schleifstueck = pos_z(obj_Schleifstueck) - pos_z(obj_An_Palette)
+        off_Schleifstueck = 100 * (pos_z(obj_Schleifstueck) - pos_z(obj_An_Palette))
 
         startframe = context.scene.frame_start
         endframe = context.scene.frame_end
         curframe = context.scene.frame_current
-        height = 2.5 * float(curframe - startframe) / float(endframe - startframe)
+        height = 2.5 * 100 * float(curframe - startframe) / float(endframe - startframe)
 
         c.compute_xE(height - off_Schleifstueck)
        
