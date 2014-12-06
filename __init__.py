@@ -171,18 +171,39 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
 
         layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_Unterarm[1]["name"])
         layout.row().prop_search(self, 'obj_Unterarm', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
+
         layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_Kuppelstange[1]["name"])
         layout.row().prop_search(self, 'obj_Kuppelstange', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
+
         layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_Oberarm[1]["name"])
         layout.row().prop_search(self, 'obj_Oberarm', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
+        if (self.obj_Oberarm in context.scene.objects and self.obj_Unterarm in context.scene.objects and
+                context.scene.objects[self.obj_Oberarm].parent != context.scene.objects[self.obj_Unterarm]):
+            layout.row().label("Parent sollte Unterarm sein", icon='ERROR')
+
         layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_An_Kuppelstange[1]["name"])
         layout.row().prop_search(self, 'obj_An_Kuppelstange', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
+        if (self.obj_An_Kuppelstange in context.scene.objects and self.obj_Oberarm in context.scene.objects and
+                context.scene.objects[self.obj_An_Kuppelstange].parent != context.scene.objects[self.obj_Oberarm]):
+            layout.row().label("Parent sollte Oberarm sein", icon='ERROR')
+
         layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_Ende_Kuppelstange[1]["name"])
         layout.row().prop_search(self, 'obj_Ende_Kuppelstange', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
+        if (self.obj_An_Kuppelstange in context.scene.objects and self.obj_Ende_Kuppelstange in context.scene.objects and
+                context.scene.objects[self.obj_Ende_Kuppelstange].parent != context.scene.objects[self.obj_Kuppelstange]):
+            layout.row().label("Parent sollte Kuppelstange sein", icon='ERROR')
+
         layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_An_Palette[1]["name"])
         layout.row().prop_search(self, 'obj_An_Palette', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
+        if (self.obj_An_Palette in context.scene.objects and self.obj_Oberarm in context.scene.objects and
+                context.scene.objects[self.obj_An_Palette].parent != context.scene.objects[self.obj_Oberarm]):
+            layout.row().label("Parent sollte Oberarm sein", icon='ERROR')
+
         layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_An_Schleifstueck[1]["name"])
         layout.row().prop_search(self, 'obj_An_Schleifstueck', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
+        if (self.obj_An_Palette in context.scene.objects and self.obj_An_Schleifstueck in context.scene.objects and
+                context.scene.objects[self.obj_An_Schleifstueck].parent != context.scene.objects[self.obj_An_Palette]):
+            layout.row().label("Parent sollte Anbaupunkt Palette sein", icon='ERROR')
 
     def execute(self, context):
         for o in (self.obj_Oberarm, self.obj_Unterarm, self.obj_Kuppelstange, self.obj_An_Schleifstueck,
@@ -197,11 +218,6 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
         obj_Ende_Kuppelstange = context.scene.objects[self.obj_Ende_Kuppelstange] # C
         obj_An_Palette = context.scene.objects[self.obj_An_Palette]           # E
         obj_An_Schleifstueck = context.scene.objects[self.obj_An_Schleifstueck]
-
-        if (obj_An_Kuppelstange.parent != obj_Oberarm or
-                obj_An_Palette.parent != obj_Oberarm or
-                obj_Oberarm.parent != obj_Unterarm):
-            return {'FINISHED'}
 
         c = PantographCalculator()
         c.point_A = 100 * pos_yz(obj_Unterarm)
