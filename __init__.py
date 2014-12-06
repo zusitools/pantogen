@@ -88,8 +88,6 @@ class PantographCalculator(object):
             raise IncomputableException("Point C is not computable")
 
     def compute_angle_CDE(self):
-        #point_E_mirrored = vector.vector([2 * self.point_C[0] - self.point_E[0], 2 * self.point_C[1] - self.point_E[1]])
-        #ang = intersections.angle_3p(point_E_mirrored, self.point_D, self.point_C)
         ang = intersections.angle_3p(self.point_C, self.point_D, self.point_E)
         if ang is None:
             raise IncomputableException("Angle is is not computable")
@@ -106,8 +104,6 @@ class PantographCalculator(object):
         return -intersections.angle_3p(self.point_E, self.point_D, self.point_A)
 
     def compute_xE(self, yE):
-        print("computing xE, A=%s, B=%s, AD=%f, BC=%f, CD=%f, DE=%f" % (self.point_A, self.point_B, self.len_AD, self.len_BC, self.len_CD, self.len_DE))
-
         self.point_E[1] = yE
         best_x = 0
         best_diff = 9999
@@ -119,14 +115,12 @@ class PantographCalculator(object):
                 self.compute_d()
                 self.compute_c()
                 a = self.compute_angle_CDE()
-                #print("x=%f, y=%f, angle=%f deg" % (self.point_E[0], self.point_E[1], a / pi * 180.0))
 
                 if (abs(a - self.angle_CDE) < best_diff):
                     best_diff = abs(a - self.angle_CDE)
                     best_x = self.point_E[0]
 
             except IncomputableException:
-                #print("incomputable for x=%f" % self.point_E[0])
                 pass
 
         if best_diff == 9999:
@@ -229,7 +223,6 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
         c.len_DE = 100 * len_yz(obj_Oberarm, obj_An_Palette)
 
         c.angle_CDE = intersections.angle_3p(100 * pos_yz(obj_An_Kuppelstange), 100 * pos_yz(obj_Oberarm), 100 * pos_yz(obj_An_Palette))
-        print("angle_CDE = %f deg" % (c.angle_CDE / pi * 180.0))
 
         off_Schleifstueck = 100 * (pos_z(obj_An_Schleifstueck) - pos_z(obj_An_Palette))
 
@@ -240,24 +233,6 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
 
         c.compute_xE(height - off_Schleifstueck)
        
-        if False:
-            import mathutils
-            empty = bpy.data.objects.new("A", None)
-            empty.location = mathutils.Vector([0, c.point_A[0], c.point_A[1]])
-            context.scene.objects.link(empty)
-            empty = bpy.data.objects.new("B", None)
-            empty.location = mathutils.Vector([0, c.point_B[0], c.point_B[1]])
-            context.scene.objects.link(empty)
-            empty = bpy.data.objects.new("C", None)
-            empty.location = mathutils.Vector([0, c.point_C[0], c.point_C[1]])
-            context.scene.objects.link(empty)
-            empty = bpy.data.objects.new("D", None)
-            empty.location = mathutils.Vector([0, c.point_D[0], c.point_D[1]])
-            context.scene.objects.link(empty)
-            empty = bpy.data.objects.new("E", None)
-            empty.location = mathutils.Vector([0, c.point_E[0], c.point_E[1]])
-            context.scene.objects.link(empty)
-
         self.set_keyframe(obj_Unterarm, "rotation_euler", 0, curframe, c.angle_at_A())
         self.set_keyframe(obj_Kuppelstange, "rotation_euler", 0, curframe, c.angle_at_B())
         self.set_keyframe(obj_Oberarm, "rotation_euler", 0, curframe, c.angle_at_D() + pi)
