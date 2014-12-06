@@ -146,6 +146,7 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
     obj_Kuppelstange = StringProperty(name='Kuppelstange (Ursprung = Rotationszentrum)', default="Kuppelstange")
     obj_Oberarm = StringProperty(name='Oberarm (Ursprung = Rotationszentrum)', default="Oberarm")
     obj_An_Kuppelstange = StringProperty(name='Anbaupunkt Kuppelstange an Oberarm', default="Anbaupunkt Kuppelstange")
+    obj_Ende_Kuppelstange = StringProperty(name='Endpunkt Kuppelstange', default="Endpunkt Kuppelstange")
     obj_An_Palette = StringProperty(name='Anbaupunkt Palette an Oberarm', default="Anbaupunkt Palette")
     obj_An_Schleifstueck = StringProperty(name='Anbaupunkt Oberkante Schleifstueck', default="Anbaupunkt Schleifstück")
 
@@ -176,13 +177,16 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
         layout.row().prop_search(self, 'obj_Oberarm', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
         layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_An_Kuppelstange[1]["name"])
         layout.row().prop_search(self, 'obj_An_Kuppelstange', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
+        layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_Ende_Kuppelstange[1]["name"])
+        layout.row().prop_search(self, 'obj_Ende_Kuppelstange', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
         layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_An_Palette[1]["name"])
         layout.row().prop_search(self, 'obj_An_Palette', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
         layout.row().label(VIEW_OT_pantogen_gen_keyframe.obj_An_Schleifstueck[1]["name"])
         layout.row().prop_search(self, 'obj_An_Schleifstueck', context.scene, 'objects', icon='OBJECT_DATAMODE', text="")
 
     def execute(self, context):
-        for o in (self.obj_Oberarm, self.obj_Unterarm, self.obj_Kuppelstange, self.obj_An_Schleifstueck, self.obj_An_Palette, self.obj_An_Kuppelstange):
+        for o in (self.obj_Oberarm, self.obj_Unterarm, self.obj_Kuppelstange, self.obj_An_Schleifstueck,
+                self.obj_An_Palette, self.obj_An_Kuppelstange, self.obj_Ende_Kuppelstange):
             if o not in context.scene.objects:
                 return {'FINISHED'}
 
@@ -190,6 +194,7 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
         obj_Kuppelstange = context.scene.objects[self.obj_Kuppelstange]       # B
         obj_Oberarm = context.scene.objects[self.obj_Oberarm]                 # D
         obj_An_Kuppelstange = context.scene.objects[self.obj_An_Kuppelstange] # C
+        obj_Ende_Kuppelstange = context.scene.objects[self.obj_Ende_Kuppelstange] # C
         obj_An_Palette = context.scene.objects[self.obj_An_Palette]           # E
         obj_An_Schleifstueck = context.scene.objects[self.obj_An_Schleifstueck]
 
@@ -203,7 +208,7 @@ class VIEW_OT_pantogen_gen_keyframe(bpy.types.Operator):
         c.point_B = 100 * pos_yz(obj_Kuppelstange)
 
         c.len_AD = 100 * len_yz(obj_Unterarm, obj_Oberarm)
-        c.len_BC = 100 * len_yz(obj_Kuppelstange, obj_An_Kuppelstange)
+        c.len_BC = 100 * len_yz(obj_Kuppelstange, obj_Ende_Kuppelstange)
         c.len_CD = 100 * len_yz(obj_An_Kuppelstange, obj_Oberarm)
         c.len_DE = 100 * len_yz(obj_Oberarm, obj_An_Palette)
 
